@@ -5,7 +5,8 @@
 - **用户端**：注册登录、邮箱验证、会员套餐展示、下单购买、订阅状态与订单查询等
 - **管理端（Admin）**：用户管理、套餐管理、订单管理等基础运营能力
 
-默认使用 **SQLite 本地数据库（`dev.db`）** 进行开发调试，可根据需要切换为 MySQL / MariaDB。
+默认使用 **MySQL / MariaDB** 作为数据库（通过 `DATABASE_URL` 配置），基于 Prisma ORM 与 `@prisma/adapter-mariadb` + `mariadb` 进行访问。
+项目中也预置了 SQLite 相关依赖，方便后续根据需要扩展为本地单文件数据库（当前默认未启用）。
 
 ---
 
@@ -43,9 +44,10 @@
   - TypeScript
 
 - **数据库 & ORM**
-  - SQLite（本地开发默认）
+  - MySQL / MariaDB（当前默认，通过 `provider = "mysql"` + `DATABASE_URL` 连接）
   - Prisma ORM
-  - 支持向 MariaDB / MySQL 迁移（已包含 `@prisma/adapter-mariadb` 与 `mariadb` 依赖）
+  - 基于 `@prisma/adapter-mariadb` + `mariadb` 进行连接池与数据库访问
+  - 预置 `@prisma/adapter-better-sqlite3` 与 `better-sqlite3` 依赖，方便后续根据需要扩展为 SQLite（当前默认未启用）
 
 - **核心依赖**
   - `@prisma/client` / `prisma`
@@ -117,7 +119,7 @@ app/
 
 lib/
   config.ts              # 应用基本配置（应用名等）
-  db.ts                  # Prisma Client 初始化（Better SQLite 适配器）
+  db.ts                  # Prisma Client 初始化（MySQL / MariaDB，基于 @prisma/adapter-mariadb）
   services/              # 业务服务层（高内聚，低耦合）
     authService.ts
     accountService.ts
@@ -139,8 +141,6 @@ lib/
 prisma/
   schema.prisma          # 数据库模型定义
   migrations/            # Prisma 迁移记录
-
-dev.db                   # 默认 SQLite 数据库文件（开发环境）
 docs/Development.md      # 更详细的开发文档
 package.json
 tsconfig.json
@@ -169,8 +169,9 @@ npm install
 在项目根目录创建 `.env` 文件（或 `.env.local`），并至少配置数据库、JWT 与邮件相关变量，示例：
 
 ```bash
-# 数据库（SQLite）
-DATABASE_URL="file:./dev.db"
+# 数据库（MySQL / MariaDB）
+# 例如本地 MySQL：mysql://username:password@localhost:3306/membership_db
+DATABASE_URL="mysql://user:password@localhost:3306/membership_db"
 
 # JWT 密钥（务必使用随机且足够复杂的字符串）
 AUTH_SECRET="your-strong-jwt-secret"
@@ -195,7 +196,7 @@ EMAIL_FROM="Membership App <noreply@example.com>"
 npx prisma migrate dev --name init
 ```
 
-如果只是基于已有的 `dev.db` 快速启动，也可以先跳过该步骤；如对模型进行了修改，则需重新执行 Prisma 迁移。
+如果你已经有初始化好的数据库，也可以先跳过该步骤；如对模型进行了修改，则需重新执行 Prisma 迁移。
 
 ### 5. 启动开发服务器
 
@@ -218,9 +219,8 @@ npm run dev
 系统通过 `.env` / `.env.local` 统一管理配置，主要变量包括：
 
 - **数据库**
-  - `DATABASE_URL`：Prisma 数据源连接串
-    - 本地 SQLite 示例：`file:./dev.db`
-    - 若改用 MySQL / MariaDB，可使用：`mysql://user:password@host:port/dbname`
+  - `DATABASE_URL`：Prisma 数据源连接串（当前使用 `provider = "mysql"`，支持 MySQL / MariaDB）
+    - 示例：`mysql://user:password@localhost:3306/membership_db`
 
 - **认证 / 安全**
   - `AUTH_SECRET`：JWT 签名密钥，`lib/utils/jwt.ts` 用于生成与校验认证 Token
@@ -265,21 +265,21 @@ npm run dev
 
 ## Prisma 数据模型概览
 
-根据 `prisma/schema.prisma`，系统包含以下主要模型与枚举（仅概念说明）：
+根据 `prisma/schema.prisma`，系统包含以下主要模型与枚举（仅概念说明，具体字段请以代码为准）：
 
 - **User**
-  - 字段：`id`, `email`, `passwordHash`, `name`, `role`, `isEmailVerified`, `emailVerifiedAt`, 等
-  - 关系：`subscriptions`（用户订阅列表）、`orders`（订单列表）
+  - 保存用户账号信息，包括邮箱（主键）、密码哈希、昵称、角色、邮箱验证状态等
+  - 关联用户的订阅记录与订单记录
 
 - **MembershipPlan**
-  - 字段：`id`, `name`, `description`, `price`, `currency`, `billingCycle`, `features`, `isActive`, 等
-  - 关系：`subscriptions`, `orders`
+  - 定义会员套餐信息：名称、描述、价格、货币、计费周期、功能特性（JSON）、是否启用等
+  - 与订阅记录、订单记录建立关联
 
 - **UserSubscription**
-  - 字段：`id`, `userId`, `planId`, `status`, `startAt`, `endAt`, `autoRenew`, 等
+  - 表示用户的某个套餐订阅，包括状态、起止时间、是否自动续费等
 
 - **Order**
-  - 字段：`id`, `orderNo`, `userId`, `planId`, `amount`, `currency`, `status`, `paymentChannel`, `paymentId`, 等
+  - 表示一次订单交易记录，包括订单号、关联用户与套餐、金额、货币、订单状态、支付渠道、支付流水号等
 
 - **枚举**
   - `UserRole`：`USER` / `ADMIN`
@@ -309,7 +309,7 @@ npm start
 部署时的建议：
 
 - 确保配置正确的 `DATABASE_URL`、`AUTH_SECRET` 以及邮件相关环境变量
-- 若使用 SQLite，在单实例小规模场景下通常足够；如需高并发或多实例部署，建议切换到 MySQL / MariaDB
+- 生产环境推荐使用 MySQL / MariaDB；如仅做本地单人测试，可根据需要自行尝试 SQLite 等轻量数据库
 - 前置反向代理（如 Nginx）或使用 Vercel 等平台托管均可
 
 ---
