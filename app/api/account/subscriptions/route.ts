@@ -17,7 +17,7 @@ export async function GET() {
 
     const payload = verifyAuthToken(token);
 
-    const subscriptions = await listSubscriptionsForUser(payload.userId);
+    const subscriptions = await listSubscriptionsForUser(payload.email);
 
     const items = subscriptions.map((sub) => ({
       id: sub.id,

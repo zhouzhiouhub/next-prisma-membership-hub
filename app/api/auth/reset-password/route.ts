@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     const user = await resetPasswordWithCode(parsed.data);
 
-    const token = signAuthToken({ userId: user.id, role: user.role });
+    const token = signAuthToken({ email: user.email, role: user.role });
 
     const cookieStore = await cookies();
     cookieStore.set("auth_token", token, {

@@ -17,7 +17,7 @@ export async function GET() {
 
     const payload = verifyAuthToken(token);
 
-    const orders = await listOrdersForUser(payload.userId);
+    const orders = await listOrdersForUser(payload.email);
 
     const data = orders.map((order) => ({
       id: order.id,

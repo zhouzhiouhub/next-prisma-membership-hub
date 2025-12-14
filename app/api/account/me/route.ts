@@ -18,9 +18,9 @@ export async function GET() {
     const payload = verifyAuthToken(token);
 
     const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
+      where: { email: payload.email },
       select: {
-        id: true,
+        number: true,
         email: true,
         name: true,
         role: true,
@@ -36,7 +36,20 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ code: "OK", data: user }, { status: 200 });
+    return NextResponse.json(
+      {
+        code: "OK",
+        data: {
+          id: user.number,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Get current user error:", error);
     return NextResponse.json(

@@ -28,7 +28,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const user = await updateUserProfile(payload.userId, parsed.data);
+    const user = await updateUserProfile(payload.email, parsed.data);
 
     return NextResponse.json(
       { code: "OK", message: "资料更新成功", data: user },

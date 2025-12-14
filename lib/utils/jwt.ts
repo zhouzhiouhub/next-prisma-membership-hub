@@ -8,7 +8,7 @@ if (!AUTH_SECRET) {
 }
 
 export interface AuthTokenPayload {
-  userId: number;
+  email: string;
   role: "USER" | "ADMIN";
 }
 

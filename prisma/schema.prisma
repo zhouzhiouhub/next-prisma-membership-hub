@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -11,8 +12,8 @@ generator client {
 }
 
 model User {
-  id           Int                @id @default(autoincrement())
-  email        String             @unique
+  number       Int                @unique @default(autoincrement())
+  email        String             @id
   passwordHash String
   name         String?
   role         UserRole           @default(USER)
@@ -57,8 +58,8 @@ enum BillingCycle {
 
 model UserSubscription {
   id        Int                 @id @default(autoincrement())
-  user      User                @relation(fields: [userId], references: [id])
-  userId    Int
+  user      User                @relation(fields: [userEmail], references: [email])
+  userEmail String
   plan      MembershipPlan      @relation(fields: [planId], references: [id])
   planId    Int
 
@@ -80,8 +81,8 @@ enum SubscriptionStatus {
 model Order {
   id             Int             @id @default(autoincrement())
   orderNo        String          @unique
-  user           User            @relation(fields: [userId], references: [id])
-  userId         Int
+  user           User            @relation(fields: [userEmail], references: [email])
+  userEmail      String
   plan           MembershipPlan  @relation(fields: [planId], references: [id])
   planId         Int
 

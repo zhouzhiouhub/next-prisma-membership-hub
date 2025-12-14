@@ -23,17 +23,16 @@ export async function registerUser(input: RegisterInput) {
 
   const passwordHash = await bcrypt.hash(input.password, 10);
 
-  const verificationCode = generateEmailVerificationCode();
-  const verificationExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 分钟
-
   const user = await prisma.user.create({
     data: {
       email: input.email,
       passwordHash,
       name: input.name,
-      isEmailVerified: false,
-      verificationCode,
-      verificationExpiresAt,
+      // 暂时不用邮箱验证，直接标记为已验证
+      isEmailVerified: true,
+      emailVerifiedAt: new Date(),
+      verificationCode: null,
+      verificationExpiresAt: null,
     },
   });
 
@@ -110,7 +109,7 @@ export async function issuePasswordResetCode(input: ForgotPasswordInput) {
   const verificationExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   await prisma.user.update({
-    where: { id: user.id },
+    where: { email: user.email },
     data: {
       verificationCode,
       verificationExpiresAt,
@@ -143,7 +142,7 @@ export async function resetPasswordWithCode(input: ResetPasswordInput) {
   const passwordHash = await bcrypt.hash(input.newPassword, 10);
 
   const updated = await prisma.user.update({
-    where: { id: user.id },
+    where: { email: user.email },
     data: {
       passwordHash,
       verificationCode: null,
@@ -171,7 +170,7 @@ export async function issueAdminPasswordResetCode(
   const verificationExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   await prisma.user.update({
-    where: { id: user.id },
+    where: { email: user.email },
     data: {
       verificationCode,
       verificationExpiresAt,
@@ -206,7 +205,7 @@ export async function resetAdminPasswordWithCode(
   const passwordHash = await bcrypt.hash(input.newPassword, 10);
 
   const updated = await prisma.user.update({
-    where: { id: user.id },
+    where: { email: user.email },
     data: {
       passwordHash,
       verificationCode: null,

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const payload = verifyAuthToken(token);
 
     const { order, paymentUrl } = await createOrderForUser(
-      payload.userId,
+      payload.email,
       parsed.data.planId,
     );
 

@@ -4,7 +4,7 @@ import { verifyAuthToken } from "@/lib/utils/jwt";
 import { prisma } from "@/lib/db";
 import { UserRole } from "@/app/generated/prisma/client";
 
-type AdminAuthSuccess = { userId: number };
+type AdminAuthSuccess = { email: string };
 type AdminAuthError = {
   error: { status: number; body: { code: string; message: string } };
 };
@@ -35,7 +35,7 @@ function requireAdmin(
       };
     }
 
-    return { userId: payload.userId };
+    return { email: payload.email };
   } catch {
     return {
       error: {
@@ -61,17 +61,26 @@ export async function GET() {
     const admins = await prisma.user.findMany({
       where: { role: UserRole.ADMIN },
       select: {
-        id: true,
+        number: true,
         email: true,
         name: true,
         role: true,
         createdAt: true,
         updatedAt: true,
       },
-      orderBy: { id: "asc" },
+      orderBy: { number: "asc" },
     });
 
-    return NextResponse.json({ code: "OK", data: admins }, { status: 200 });
+    const data = admins.map((admin) => ({
+      id: admin.number,
+      email: admin.email,
+      name: admin.name,
+      role: admin.role,
+      createdAt: admin.createdAt,
+      updatedAt: admin.updatedAt,
+    }));
+
+    return NextResponse.json({ code: "OK", data }, { status: 200 });
   } catch (error) {
     console.error("Admin get admins error:", error);
     return NextResponse.json(

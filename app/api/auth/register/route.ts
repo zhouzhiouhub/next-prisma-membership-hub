@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { registerInputSchema } from "@/lib/utils/authValidators";
-import { registerUser } from "@/lib/services/authService";
-import { sendVerificationEmail } from "@/lib/services/emailService";
+import { registerUser, authenticateUser } from "@/lib/services/authService";
+import { signAuthToken } from "@/lib/utils/jwt";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   try {
@@ -15,19 +16,36 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await registerUser(parsed.data);
+    // 直接创建用户并自动登录（暂时不用邮箱验证）
+    await registerUser(parsed.data);
 
-    // 向用户发送邮箱验证码（当前实现为控制台输出）
-    if (user.verificationCode) {
-      await sendVerificationEmail(user.email, user.verificationCode);
-    }
+    const authedUser = await authenticateUser({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
+
+    const token = signAuthToken({
+      email: authedUser.email,
+      role: authedUser.role,
+    });
+
+    const cookieStore = await cookies();
+    cookieStore.set("auth_token", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
 
     return NextResponse.json(
       {
-        code: "VERIFICATION_REQUIRED",
-        message: "注册信息已提交，请前往邮箱查看验证码完成激活",
+        code: "OK",
+        message: "注册成功，已自动登录",
         data: {
-          email: user.email,
+          email: authedUser.email,
+          name: authedUser.name,
+          role: authedUser.role,
         },
       },
       { status: 200 },

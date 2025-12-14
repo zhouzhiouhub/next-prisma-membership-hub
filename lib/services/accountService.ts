@@ -10,7 +10,7 @@ import { generateEmailVerificationCode } from "@/lib/utils/codeGenerator";
 import { sendVerificationEmail } from "@/lib/services/emailService";
 
 export async function updateUserProfile(
-  userId: number,
+  email: string,
   input: UpdateProfileInput,
 ) {
   const data: { name?: string } = {};
@@ -21,9 +21,9 @@ export async function updateUserProfile(
 
   if (Object.keys(data).length === 0) {
     return prisma.user.findUnique({
-      where: { id: userId },
+      where: { email },
       select: {
-        id: true,
+        number: true,
         email: true,
         name: true,
         role: true,
@@ -34,10 +34,10 @@ export async function updateUserProfile(
   }
 
   return prisma.user.update({
-    where: { id: userId },
+    where: { email },
     data,
     select: {
-      id: true,
+      number: true,
       email: true,
       name: true,
       role: true,
@@ -48,11 +48,11 @@ export async function updateUserProfile(
 }
 
 export async function changeUserPassword(
-  userId: number,
+  email: string,
   input: ChangePasswordInput,
 ) {
   const user = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { email },
   });
 
   if (!user) {
@@ -67,7 +67,7 @@ export async function changeUserPassword(
   const passwordHash = await bcrypt.hash(input.newPassword, 10);
 
   await prisma.user.update({
-    where: { id: userId },
+    where: { email },
     data: {
       passwordHash,
     },
@@ -75,11 +75,11 @@ export async function changeUserPassword(
 }
 
 export async function requestEmailChange(
-  userId: number,
+  email: string,
   input: RequestEmailChangeInput,
 ) {
   const user = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { email },
   });
 
   if (!user) {
@@ -95,7 +95,7 @@ export async function requestEmailChange(
     where: { email: input.newEmail },
   });
 
-  if (existingByEmail && existingByEmail.id !== userId) {
+  if (existingByEmail && existingByEmail.email !== input.newEmail) {
     throw new Error("EMAIL_ALREADY_IN_USE");
   }
 
@@ -103,7 +103,7 @@ export async function requestEmailChange(
   const verificationExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   await prisma.user.update({
-    where: { id: userId },
+    where: { email },
     data: {
       verificationCode,
       verificationExpiresAt,
@@ -114,11 +114,11 @@ export async function requestEmailChange(
 }
 
 export async function confirmEmailChange(
-  userId: number,
+  email: string,
   input: ConfirmEmailChangeInput,
 ) {
   const user = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { email },
   });
 
   if (!user) {
@@ -144,12 +144,12 @@ export async function confirmEmailChange(
     where: { email: input.newEmail },
   });
 
-  if (existingByEmail && existingByEmail.id !== userId) {
+  if (existingByEmail && existingByEmail.email !== input.newEmail) {
     throw new Error("EMAIL_ALREADY_IN_USE");
   }
 
   return prisma.user.update({
-    where: { id: userId },
+    where: { email },
     data: {
       email: input.newEmail,
       verificationCode: null,
@@ -158,7 +158,7 @@ export async function confirmEmailChange(
       emailVerifiedAt: new Date(),
     },
     select: {
-      id: true,
+      number: true,
       email: true,
       name: true,
       role: true,

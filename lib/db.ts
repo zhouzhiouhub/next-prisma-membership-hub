@@ -1,9 +1,22 @@
 import "dotenv/config";
 import { PrismaClient } from "../app/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL || "file:./dev.db",
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL environment variable is not set");
+}
+
+const url = new URL(databaseUrl);
+
+const adapter = new PrismaMariaDb({
+  host: url.hostname || "localhost",
+  port: url.port ? parseInt(url.port, 10) : 3306,
+  user: url.username || undefined,
+  password: url.password || undefined,
+  database: url.pathname.replace(/^\//, "") || undefined,
+  connectionLimit: 5,
 });
 
 const globalForPrisma = globalThis as unknown as {
@@ -20,4 +33,5 @@ export const prisma =
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
+
 

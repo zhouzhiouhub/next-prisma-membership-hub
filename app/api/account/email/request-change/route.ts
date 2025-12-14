@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      await requestEmailChange(payload.userId, parsed.data);
+      await requestEmailChange(payload.email, parsed.data);
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === "USER_NOT_FOUND") {

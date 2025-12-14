@@ -7,7 +7,7 @@ import {
   UserRole,
 } from "@/app/generated/prisma/client";
 
-type AdminAuthSuccess = { userId: number };
+type AdminAuthSuccess = { email: string };
 type AdminAuthError = {
   error: { status: number; body: { code: string; message: string } };
 };
@@ -38,7 +38,7 @@ function requireAdmin(
       };
     }
 
-    return { userId: payload.userId };
+    return { email: payload.email };
   } catch {
     return {
       error: {
@@ -63,7 +63,7 @@ export async function GET() {
 
     const users = await prisma.user.findMany({
       select: {
-        id: true,
+        number: true,
         email: true,
         name: true,
         role: true,
@@ -85,14 +85,14 @@ export async function GET() {
         },
       },
       where: { role: UserRole.USER },
-      orderBy: { id: "asc" },
+      orderBy: { number: "asc" },
     });
 
     const data = users.map((user) => {
       const active = user.subscriptions[0];
 
       return {
-        id: user.id,
+        id: user.number,
         email: user.email,
         name: user.name,
         role: user.role,

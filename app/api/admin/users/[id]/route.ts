@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { verifyAuthToken } from "@/lib/utils/jwt";
 import { prisma } from "@/lib/db";
 
-type AdminAuthSuccess = { userId: number };
+type AdminAuthSuccess = { email: string };
 type AdminAuthError = {
   error: { status: number; body: { code: string; message: string } };
 };
@@ -34,7 +34,7 @@ function requireAdmin(
       };
     }
 
-    return { userId: payload.userId };
+    return { email: payload.email };
   } catch {
     return {
       error: {
@@ -93,10 +93,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const updated = await prisma.user.update({
-      where: { id },
+      where: { number: id },
       data,
       select: {
-        id: true,
+        number: true,
         email: true,
         name: true,
         role: true,
@@ -105,7 +105,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    return NextResponse.json({ code: "OK", data: updated }, { status: 200 });
+    return NextResponse.json(
+      {
+        code: "OK",
+        data: {
+          id: updated.number,
+          email: updated.email,
+          name: updated.name,
+          role: updated.role,
+          createdAt: updated.createdAt,
+          updatedAt: updated.updatedAt,
+        },
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Admin update user error:", error);
     return NextResponse.json(
@@ -136,17 +149,11 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (id === auth.userId) {
-      return NextResponse.json(
-        { code: "FORBIDDEN", message: "不能删除当前登录的管理员账号" },
-        { status: 400 },
-      );
-    }
-
     const user = await prisma.user.findUnique({
-      where: { id },
+      where: { number: id },
       select: {
-        id: true,
+        number: true,
+        email: true,
         _count: {
           select: {
             orders: true,
@@ -163,6 +170,13 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    if (user.email === auth.email) {
+      return NextResponse.json(
+        { code: "FORBIDDEN", message: "不能删除当前登录的管理员账号" },
+        { status: 400 },
+      );
+    }
+
     if (user._count.orders > 0 || user._count.subscriptions > 0) {
       return NextResponse.json(
         {
@@ -174,7 +188,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     }
 
     await prisma.user.delete({
-      where: { id },
+      where: { number: id },
     });
 
     return NextResponse.json({ code: "OK" }, { status: 200 });

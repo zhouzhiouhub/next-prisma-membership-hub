@@ -30,7 +30,7 @@ function requireAdmin(requestCookies: Awaited<ReturnType<typeof cookies>>) {
       };
     }
 
-    return { userId: payload.userId };
+    return { email: payload.email };
   } catch {
     return {
       error: {
@@ -53,7 +53,7 @@ export async function PATCH(
     const cookieStore = await cookies();
     const auth = requireAdmin(cookieStore);
 
-    if ("error" in auth) {
+    if ("error" in auth && auth.error) {
       return NextResponse.json(auth.error.body, { status: auth.error.status });
     }
 
@@ -118,7 +118,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     const cookieStore = await cookies();
     const auth = requireAdmin(cookieStore);
 
-    if ("error" in auth) {
+    if ("error" in auth && auth.error) {
       return NextResponse.json(auth.error.body, { status: auth.error.status });
     }
 

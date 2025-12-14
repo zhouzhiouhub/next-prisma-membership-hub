@@ -6,9 +6,9 @@ import {
 } from "@/app/generated/prisma/client";
 
 /**
- * 为指定用户创建订单
+ * 为指定用户创建订单（使用邮箱标识用户）
  */
-export async function createOrderForUser(userId: number, planId: number) {
+export async function createOrderForUser(userEmail: string, planId: number) {
   const plan = await prisma.membershipPlan.findUnique({
     where: { id: planId, isActive: true },
   });
@@ -22,7 +22,7 @@ export async function createOrderForUser(userId: number, planId: number) {
   const order = await prisma.order.create({
     data: {
       orderNo,
-      userId,
+      userEmail,
       planId: plan.id,
       amount: plan.price,
       currency: plan.currency,
@@ -38,11 +38,11 @@ export async function createOrderForUser(userId: number, planId: number) {
 }
 
 /**
- * 查询指定用户的订单列表（含关联套餐信息），按创建时间倒序
+ * 查询指定用户的订单列表（含关联套餐信息），按创建时间倒序（按邮箱过滤）
  */
-export async function listOrdersForUser(userId: number) {
+export async function listOrdersForUser(userEmail: string) {
   return prisma.order.findMany({
-    where: { userId },
+    where: { userEmail },
     include: {
       plan: true,
     },

@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     }
 
     const updated = await prisma.user.update({
-      where: { id: user.id },
+      where: { email: user.email },
       data: {
         isEmailVerified: true,
         emailVerifiedAt: new Date(),
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       },
     });
 
-    const token = signAuthToken({ userId: updated.id, role: updated.role });
+    const token = signAuthToken({ email: updated.email, role: updated.role });
 
     const cookieStore = await cookies();
     cookieStore.set("auth_token", token, {
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
         code: "OK",
         message: "邮箱已成功激活",
         data: {
-          id: updated.id,
+          id: (updated as any).number ?? undefined,
           email: updated.email,
           name: updated.name,
           role: updated.role,

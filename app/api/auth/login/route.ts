@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     }
 
     const user = await authenticateUser(parsed.data);
-    const token = signAuthToken({ userId: user.id, role: user.role });
+    const token = signAuthToken({ email: user.email, role: user.role });
 
     const cookieStore = await cookies();
     cookieStore.set("auth_token", token, {
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       {
         code: "OK",
         data: {
-          id: user.id,
+          id: (user as any).number ?? undefined,
           email: user.email,
           name: user.name,
           role: user.role,

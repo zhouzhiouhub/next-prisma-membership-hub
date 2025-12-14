@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     let updatedUser;
 
     try {
-      updatedUser = await confirmEmailChange(payload.userId, parsed.data);
+      updatedUser = await confirmEmailChange(payload.email, parsed.data);
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === "USER_NOT_FOUND") {
